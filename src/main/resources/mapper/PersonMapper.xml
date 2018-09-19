@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bw.dao.UsersMapper">
+
+<select id="selectCount" resultType="Integer">
+    SELECT COUNT(*) FROM (SELECT tmp.*,v.vname FROM venue v,
+    (SELECT t.*,GROUP_CONCAT(pt.ptid) ptids,GROUP_CONCAT(pt.ptname) ptnames from
+     ticket_info t LEFT JOIN ticket_pay_type tpt on t.tid=tpt.tid LEFT JOIN
+     pay_type pt on pt.ptid=tpt.ptid GROUP BY t.tid)tmp
+      WHERE tmp.vid=v.vid
+      <if test="vo.name!=null and vo.name!=''">
+          and tmp.tname LIKE CONCAT('%',#{vo.name},'%')
+      </if>
+      )tmp
+</select>
+
+
+<select id="selectObjects" resultType="com.bw.entity.Ticket_infoExtends">
+SELECT tmp.*,v.vname FROM venue v,
+(SELECT t.*,GROUP_CONCAT(pt.ptid) ptids,GROUP_CONCAT(pt.ptname) ptnames from ticket_info
+ t LEFT JOIN ticket_pay_type tpt on t.tid=tpt.tid LEFT JOIN pay_type pt
+ on pt.ptid=tpt.ptid GROUP BY t.tid)tmp WHERE tmp.vid=v.vid
+    <if test="vo.name!=null and vo.name!=''">
+        and tmp.tname LIKE CONCAT('%',#{vo.name},'%')
+    </if>
+    LIMIT #{indexStart},#{rows}
+</select>
+
+    <update id="updateputaway" keyProperty="tid" useGeneratedKeys="true">
+        update ticket_info set tstatus=1 where tid=#{tid}
+    </update>
+    <update id="updateSoldout" keyProperty="tid" useGeneratedKeys="true">
+        update ticket_info set tstatus=0 where tid=#{tid}
+    </update>
+
+    <select id="selectVenue" resultType="com.bw.entity.Venue">
+    SELECT * from venue
+    </select>
+    <select id="selectPayType" resultType="com.bw.entity.Pay_type">
+    select * from pay_type
+    </select>
+
+    <insert id="insertObject" keyProperty="tid" useGeneratedKeys="true">
+     insert  into ticket_info (tname,vid,tprice,tstatus,tpicture,tcreatetime,tupdatetime,tdiscount)
+     VALUES (#{tname},#{vid},#{tprice},#{tstatus},#{tpicture},NOW(),NOW(),#{tdiscount})
+    </insert>
+
+    <insert id="insertPaytype">
+    insert into ticket_pay_type (tid,ptid) VALUES
+    <foreach collection="ids" separator="," item="id">
+        (#{tid},#{id})
+    </foreach>
+    </insert>
+
+    <select id="selectObjectById" resultType="com.bw.entity.Ticket_infoExtends">
+    SELECT tmp.*,v.vname FROM venue v,(SELECT t.*,GROUP_CONCAT(pt.ptid) ptids,GROUP_CONCAT(pt.ptname)
+     ptnames from ticket_info t LEFT JOIN ticket_pay_type tpt on t.tid=tpt.tid LEFT JOIN pay_type pt
+      on pt.ptid=tpt.ptid GROUP BY t.tid)tmp WHERE tmp.vid=v.vid and tmp.tid=#{tid}
+    </select>
+
+
+    <update id="updateObject" >
+        UPDATE ticket_info set tname=#{tname},vid=#{vid},tprice=#{tprice},tstatus=#{tstatus},tupdatetime=now(),
+        tdiscount=#{tdiscount} WHERE tid=#{tid}
+    </update>
+
+    <delete id="delMiddles" >
+        DELETE from ticket_pay_type where tid=#{tid}
+    </delete>
+
+    <insert id="insertMiddle">
+        insert into ticket_pay_type (tid,ptid) VALUES
+        <foreach collection="ids" item="id" separator=",">
+            (#{tid},#{id})
+       </foreach>
+    </insert>
+</mapper>
